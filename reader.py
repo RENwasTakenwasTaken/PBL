@@ -3,10 +3,11 @@ import threading
 from time import sleep
 
 import serial
+from serial.tools import list_ports
 
 
 class SerialValueReader:
-    def __init__(self, port="COM11", baudrate=9600, timeout=1, default_value=0.0):
+    def __init__(self, port=None, baudrate=9600, timeout=1, default_value=0.0):
         self.port = port
         self.baudrate = baudrate
         self.timeout = timeout
@@ -22,6 +23,9 @@ class SerialValueReader:
     def start(self):
         if self._thread and self._thread.is_alive():
             return self
+
+        if not self.port:
+            self.port = self._detect_port()
 
         self._serial = serial.Serial(self.port, self.baudrate, timeout=self.timeout)
         self._stop_event.clear()
@@ -61,6 +65,28 @@ class SerialValueReader:
         with self._lock:
             return self._latest_text
 
+    def _detect_port(self):
+        first_com_port = None
+        first_acm_port = None
+
+        for port_info in list_ports.comports():
+            device = (port_info.device or "").strip()
+            device_upper = device.upper()
+
+            if not first_com_port and device_upper.startswith("COM"):
+                first_com_port = device
+
+            if not first_acm_port and "ACM" in device_upper:
+                first_acm_port = device
+
+        if first_com_port:
+            return first_com_port
+
+        if first_acm_port:
+            return first_acm_port
+
+        raise serial.SerialException("No matching serial port found (expected COM* or *ACM*).")
+
     def _read_loop(self):
         while not self._stop_event.is_set():
             try:
@@ -85,7 +111,7 @@ class SerialValueReader:
 
 def main():
     parser = argparse.ArgumentParser(description="Read numeric values from a serial port.")
-    parser.add_argument("--port", default="COM11")
+    parser.add_argument("--port", default=None)
     parser.add_argument("--baudrate", type=int, default=9600)
     parser.add_argument("--timeout", type=float, default=1)
     parser.add_argument("--rate", type=float, default=20.0, help="Print rate in Hz.")

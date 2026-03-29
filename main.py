@@ -20,7 +20,7 @@ class MainLayout(BoxLayout):
     heartbeat_detected = BooleanProperty(False)
     heart_icon_color = ColorProperty(HEART_DARK)
     title_text = StringProperty("SpO2 Waveform Monitor")
-    status_text = StringProperty("Connecting to COM11 @ 9600 baud")
+    status_text = StringProperty("Connecting to serial port @ 9600 baud")
     heartrate_threshold_lower = NumericProperty(0)
     heartrate_threshold_upper = NumericProperty(0)
 
@@ -51,11 +51,11 @@ class MainLayout(BoxLayout):
 
     def start(self):
         try:
-            self.reader = SerialValueReader(port="COM11", baudrate=9600, timeout=1).start()
+            self.reader = SerialValueReader(baudrate=9600, timeout=1).start()
             self.top_waveform.data_source = self.reader.get_latest_upper_value
             self.bottom_waveform.data_source = self.reader.get_latest_lower_value
             self.pleth_waveform.data_source = self.get_latest_pleth_value
-            self.status_text = "Reading live data from COM11"
+            self.status_text = f"Reading live data from {self.reader.port}"
         except Exception as exc:
             self.status_text = f"Serial connection failed: {exc}"
             self.top_waveform.data_source = lambda: 0
