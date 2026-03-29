@@ -7,11 +7,12 @@ from serial.tools import list_ports
 
 
 class SerialValueReader:
-    def __init__(self, port=None, baudrate=9600, timeout=1, default_value=0.0):
+    def __init__(self, port=None, baudrate=9600, timeout=1, default_value=0.0, reconnect_delay=5.0):
         self.port = port
         self.baudrate = baudrate
         self.timeout = timeout
         self.default_value = float(default_value)
+        self.reconnect_delay = float(reconnect_delay)
 
         self._serial = None
         self._thread = None
@@ -19,15 +20,12 @@ class SerialValueReader:
         self._lock = threading.Lock()
         self._latest_values = (self.default_value, self.default_value)
         self._latest_text = ""
+        self._last_error = ""
 
     def start(self):
         if self._thread and self._thread.is_alive():
             return self
 
-        if not self.port:
-            self.port = self._detect_port()
-
-        self._serial = serial.Serial(self.port, self.baudrate, timeout=self.timeout)
         self._stop_event.clear()
         self._thread = threading.Thread(target=self._read_loop, daemon=True)
         self._thread.start()
@@ -65,6 +63,13 @@ class SerialValueReader:
         with self._lock:
             return self._latest_text
 
+    def is_connected(self):
+        return bool(self._serial and self._serial.is_open)
+
+    def get_last_error(self):
+        with self._lock:
+            return self._last_error
+
     def _detect_port(self):
         first_com_port = None
         first_acm_port = None
@@ -87,12 +92,41 @@ class SerialValueReader:
 
         raise serial.SerialException("No matching serial port found (expected COM* or *ACM*).")
 
+    def _connect(self):
+        port = self.port or self._detect_port()
+        self._serial = serial.Serial(port, self.baudrate, timeout=self.timeout)
+        self.port = port
+
+        with self._lock:
+            self._last_error = ""
+
+    def _disconnect(self):
+        if self._serial and self._serial.is_open:
+            self._serial.close()
+        self._serial = None
+
     def _read_loop(self):
         while not self._stop_event.is_set():
+            if not self.is_connected():
+                try:
+                    self._connect()
+                except serial.SerialException as exc:
+                    with self._lock:
+                        self._last_error = str(exc)
+                    self._disconnect()
+                    if self._stop_event.wait(self.reconnect_delay):
+                        break
+                    continue
+
             try:
                 raw = self._serial.readline()
-            except serial.SerialException:
-                break
+            except serial.SerialException as exc:
+                with self._lock:
+                    self._last_error = str(exc)
+                self._disconnect()
+                if self._stop_event.wait(self.reconnect_delay):
+                    break
+                continue
 
             text = raw.decode("utf-8", errors="ignore").strip()
             if not text:
@@ -107,6 +141,8 @@ class SerialValueReader:
             with self._lock:
                 self._latest_text = text
                 self._latest_values = values
+
+        self._disconnect()
 
 
 def main():

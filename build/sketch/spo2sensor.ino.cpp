@@ -11,7 +11,7 @@ char serial_buffer[32];
 
 #line 10 "c:\\Users\\aryan\\Documents\\All Projects\\Academic\\PICT\\PBL\\spo2sensor.ino"
 void setup();
-#line 19 "c:\\Users\\aryan\\Documents\\All Projects\\Academic\\PICT\\PBL\\spo2sensor.ino"
+#line 21 "c:\\Users\\aryan\\Documents\\All Projects\\Academic\\PICT\\PBL\\spo2sensor.ino"
 void loop();
 #line 10 "c:\\Users\\aryan\\Documents\\All Projects\\Academic\\PICT\\PBL\\spo2sensor.ino"
 void setup() {
@@ -20,12 +20,14 @@ void setup() {
 
   Serial.begin(9600);
   ads.begin();
-  ads.setGain(GAIN_TWO);
+  ads.setGain(GAIN_SIXTEEN);
+
+  delay(5000);
 }
 
 void loop() {
   digitalWrite(3, HIGH);
-  delay(5);
+  delay(7);
   red_levels = ads.readADC_SingleEnded(0);
   digitalWrite(3, LOW);
 
@@ -36,7 +38,7 @@ void loop() {
 
   sprintf(serial_buffer, "%d,%d", red_levels, ir_levels);
   Serial.println(serial_buffer);
-  delay(5);
+  delay(3);
 
   // 60Hz capture rate.
 }

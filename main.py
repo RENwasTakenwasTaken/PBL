@@ -50,17 +50,11 @@ class MainLayout(BoxLayout):
         return self.ids.pleth_waveform
 
     def start(self):
-        try:
-            self.reader = SerialValueReader(baudrate=9600, timeout=1).start()
-            self.top_waveform.data_source = self.reader.get_latest_upper_value
-            self.bottom_waveform.data_source = self.reader.get_latest_lower_value
-            self.pleth_waveform.data_source = self.get_latest_pleth_value
-            self.status_text = f"Reading live data from {self.reader.port}"
-        except Exception as exc:
-            self.status_text = f"Serial connection failed: {exc}"
-            self.top_waveform.data_source = lambda: 0
-            self.bottom_waveform.data_source = lambda: 0
-            self.pleth_waveform.data_source = lambda: 0
+        self.reader = SerialValueReader(baudrate=9600, timeout=1).start()
+        self.top_waveform.data_source = self.reader.get_latest_upper_value
+        self.bottom_waveform.data_source = self.reader.get_latest_lower_value
+        self.pleth_waveform.data_source = self.get_latest_pleth_value
+        self.status_text = "Searching for serial device..."
 
         self._events = [
             Clock.schedule_interval(self.graph_fps, 1 / self.top_waveform.fps),
@@ -128,6 +122,11 @@ class MainLayout(BoxLayout):
 
     def refresh_status(self, _dt):
         if not self.reader:
+            return
+
+        if not self.reader.is_connected():
+            error_text = self.reader.get_last_error() or "No matching serial device found"
+            self.status_text = f"{error_text}. Retrying in 5 seconds..."
             return
 
         upper, lower = self.reader.get_latest_values()
