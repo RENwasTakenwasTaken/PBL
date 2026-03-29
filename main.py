@@ -124,9 +124,11 @@ class MainLayout(BoxLayout):
         return sum(point[1] for point in points) / len(points)
 
     def graph_updation(self, *_args):
-        self.top_waveform.update_autoscale()
+        if self.top_waveform.parent is not None:
+            self.top_waveform.update_autoscale()
         self.bottom_waveform.update_autoscale()
-        self.pleth_waveform.update_autoscale()
+        if self.pleth_waveform.parent is not None:
+            self.pleth_waveform.update_autoscale()
         if self.extra_waveforms_enabled:
             self.ir_delta_waveform.update_autoscale()
             self.update_fft_graph()
@@ -144,13 +146,16 @@ class MainLayout(BoxLayout):
             self.heartBeat_timer = 0
 
         # --- Plethysmograph Averaging for SpO2. ---
-        points = self.pleth_waveform.get_plot_points(portion=1)
-        self.spo2 = str(round(self.calculate_array_average_absolute(points)))
+        if self.pleth_waveform.parent is not None:
+            points = self.pleth_waveform.get_plot_points(portion=1)
+            self.spo2 = str(round(self.calculate_array_average_absolute(points)))
 
     def graph_fps(self, *_args):
-        self.top_waveform.update_from_source()
+        if self.top_waveform.parent is not None:
+            self.top_waveform.update_from_source()
         self.bottom_waveform.update_from_source()
-        self.pleth_waveform.update_from_source()
+        if self.pleth_waveform.parent is not None:
+            self.pleth_waveform.update_from_source()
         if self.extra_waveforms_enabled:
             self.ir_delta_waveform.update_from_source()
 
