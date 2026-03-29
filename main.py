@@ -10,6 +10,7 @@ from kivy.factory import Factory
 from kivy.lang import Builder
 from kivy.properties import BooleanProperty, ColorProperty, NumericProperty, StringProperty
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.modalview import ModalView
 
 from reader import SerialValueReader
 
@@ -49,6 +50,7 @@ class MainLayout(BoxLayout):
 
         self.last_heartbeat_time = 0
         self._extra_waveforms_panel = None
+        self._update_modal = None
 
     @property
     def top_waveform(self):
@@ -257,8 +259,22 @@ class MainLayout(BoxLayout):
         self.fft_graph.set_spectrum(visible_points)
 
     def updateSoftware(self):
+        if self._update_modal is not None:
+            self._update_modal.dismiss()
         subprocess.run(["git", "pull"])
         App.get_running_app().stop()
+
+    def open_update_modal(self):
+        if self._update_modal is None:
+            content = Factory.UpdateModalContent()
+            self._update_modal = ModalView(size_hint=(None, None), size=(420, 220), auto_dismiss=True)
+            self._update_modal.add_widget(content)
+
+        self._update_modal.open()
+
+    def close_update_modal(self):
+        if self._update_modal is not None:
+            self._update_modal.dismiss()
 
     def toggle_extra_waveforms(self):
         self._ensure_extra_waveforms_panel()
