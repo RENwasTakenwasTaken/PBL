@@ -580,4 +580,110 @@ class Waveform(Widget):
 
         self.line_left.points = pts_left
         self.line_right.points = pts_right
-        
+
+
+class FFTGraph(Widget):
+    max_frequency = NumericProperty(8.0)
+    max_magnitude = NumericProperty(1.0)
+    major_x_ticks = NumericProperty(4)
+    major_y_ticks = NumericProperty(4)
+    line_width = NumericProperty(1.3)
+    graph_color = ListProperty([1, 0.8, 0.2, 1])
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._spectrum = []
+
+        with self.canvas:
+            self._line_color = Color(*self.graph_color)
+            self._line = Line(points=[], width=self.line_width)
+
+        self.bind(pos=self.redraw, size=self.redraw)
+        self.bind(
+            size=self.draw_grid,
+            pos=self.draw_grid,
+            max_frequency=self.draw_grid,
+            max_magnitude=self.draw_grid,
+            major_x_ticks=self.draw_grid,
+            major_y_ticks=self.draw_grid,
+        )
+        self.bind(graph_color=self._update_graph_color, line_width=self._update_graph_line_width)
+
+        self.draw_grid()
+        self.redraw()
+
+    def _update_graph_color(self, *_args):
+        self._line_color.rgba = self.graph_color
+
+    def _update_graph_line_width(self, *_args):
+        self._line.width = self.line_width
+
+    def set_spectrum(self, spectrum_points):
+        self._spectrum = spectrum_points
+
+        peak_magnitude = max((magnitude for _, magnitude in spectrum_points), default=1.0)
+        self.max_magnitude = max(1.0, peak_magnitude * 1.1)
+        self.redraw()
+
+    def clear_spectrum(self):
+        self._spectrum = []
+        self.max_magnitude = 1.0
+        self.redraw()
+
+    def draw_grid(self, *args):
+        self.canvas.before.clear()
+
+        w, h = self.size
+        x0, y0 = self.pos
+
+        with self.canvas.before:
+            Color(0.25, 0.25, 0.25)
+
+            for i in range(self.major_y_ticks + 1):
+                y = y0 + i * h / self.major_y_ticks
+                Line(points=[x0, y, x0 + w, y], width=1)
+
+            for i in range(self.major_x_ticks + 1):
+                x = x0 + i * w / self.major_x_ticks
+                Line(points=[x, y0, x, y0 + h], width=1)
+
+            Color(1, 1, 1, 1)
+            for i in range(self.major_y_ticks + 1):
+                value = i * (self.max_magnitude / self.major_y_ticks)
+                y = y0 + i * h / self.major_y_ticks
+
+                lbl = CoreLabel(text=f"{value:.0f}", font_size=12, color=(1, 1, 1, 1))
+                lbl.refresh()
+                Rectangle(
+                    texture=lbl.texture,
+                    pos=(x0 - lbl.texture.size[0] - 5, y - lbl.texture.size[1] / 2),
+                    size=lbl.texture.size,
+                )
+
+            for i in range(self.major_x_ticks + 1):
+                value = i * (self.max_frequency / self.major_x_ticks)
+                x = x0 + i * w / self.major_x_ticks
+
+                lbl = CoreLabel(text=f"{value:.1f}Hz", font_size=12, color=(1, 1, 1, 1))
+                lbl.refresh()
+                Rectangle(
+                    texture=lbl.texture,
+                    pos=(x - lbl.texture.size[0] / 2, y0 - lbl.texture.size[1] - 4),
+                    size=lbl.texture.size,
+                )
+
+    def redraw(self, *args):
+        w, h = self.size
+        x0, y0 = self.pos
+
+        if not self._spectrum or self.max_frequency <= 0 or self.max_magnitude <= 0:
+            self._line.points = []
+            return
+
+        points = []
+        for frequency, magnitude in self._spectrum:
+            x = x0 + (frequency / self.max_frequency) * w
+            y = y0 + (magnitude / self.max_magnitude) * h
+            points.extend([x, y])
+
+        self._line.points = points

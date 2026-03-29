@@ -10,7 +10,7 @@ class SerialValueReader:
     def __init__(
         self,
         port=None,
-        baudrate=9600,
+        baudrate=115200,
         timeout=1,
         default_value=0.0,
         reconnect_delay=5.0,
@@ -183,7 +183,7 @@ class SerialValueReader:
 def main():
     parser = argparse.ArgumentParser(description="Read numeric values from a serial port.")
     parser.add_argument("--port", default=None)
-    parser.add_argument("--baudrate", type=int, default=9600)
+    parser.add_argument("--baudrate", type=int, default=115200)
     parser.add_argument("--timeout", type=float, default=1)
     parser.add_argument("--rate", type=float, default=20.0, help="Print rate in Hz.")
     parser.add_argument("--smoothing-alpha", type=float, default=0.15)

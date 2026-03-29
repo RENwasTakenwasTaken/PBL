@@ -12,27 +12,22 @@ void setup() {
   pinMode(3, 0x1);
   pinMode(4, 0x1);
 
-  Serial.begin(9600);
+  Serial.begin(115200);
   ads.begin();
-  ads.setGain(GAIN_SIXTEEN);
-
-  delay(5000);
+  ads.setGain(GAIN_TWO);
 }
 
 void loop() {
   digitalWrite(3, 0x1);
-  delay(7);
+  delay(2);
   red_levels = ads.readADC_SingleEnded(0);
   digitalWrite(3, 0x0);
 
   digitalWrite(4, 0x1);
-  delay(5);
+  delay(2);
   ir_levels = ads.readADC_SingleEnded(0);
   digitalWrite(4, 0x0);
 
   sprintf(serial_buffer, "%d,%d", red_levels, ir_levels);
   Serial.println(serial_buffer);
-  delay(3);
-
-  // 60Hz capture rate.
 }

@@ -11,7 +11,7 @@ void setup() {
   pinMode(3, OUTPUT);
   pinMode(4, OUTPUT);
 
-  Serial.begin(9600);
+  Serial.begin(115200);
   ads.begin();
   ads.setGain(GAIN_TWO);
 }
@@ -29,7 +29,4 @@ void loop() {
 
   sprintf(serial_buffer, "%d,%d", red_levels, ir_levels);
   Serial.println(serial_buffer);
-  // delay(5);
-
-  // 60Hz capture rate.
 }
