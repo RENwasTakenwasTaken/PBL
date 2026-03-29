@@ -1,4 +1,5 @@
 from pathlib import Path
+import subprocess
 
 from kivy.app import App
 from kivy.clock import Clock
@@ -146,6 +147,9 @@ class MainLayout(BoxLayout):
 
         return (red / ir) * 100
 
+    def updateSoftware(self):
+        subprocess.run(["git", "pull"])
+        App.get_running_app().stop()
 
 class WaveformTestApp(App):
     def build(self):

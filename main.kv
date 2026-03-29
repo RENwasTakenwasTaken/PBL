@@ -41,6 +41,14 @@
             text: "HR: " + root.heartrate
             text_size: self.size
 
+        Widget:
+        
+        Button:
+            text: "Update S/W"
+            on_press: root.updateSoftware()
+            width: self.texture_size[0]
+            padding: [10]
+
     Label:
         size_hint_y: None
         height: dp(28)
