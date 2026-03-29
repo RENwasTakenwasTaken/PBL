@@ -80,7 +80,7 @@
     spacing: dp(8)
 
     SectionTitle:
-        text: "IR Delta"
+        text: "IR (d / dt) Rate-Of-Change Waveform"
         color: 1, 0.8, 0.4, 1
 
     Waveform:
@@ -99,7 +99,7 @@
         graph_color: 1, 0.8, 0.4, 1
 
     SectionTitle:
-        text: "IR FFT"
+        text: "IR FFT (Harmonics present out of 25Hz)"
         color: 1, 0.8, 0.2, 1
 
     FFTGraph:
@@ -163,7 +163,7 @@
                 id: red_label
                 size_hint_y: None
                 height: dp(22)
-                text: "Red Channel"
+                text: "RED LED (RAW) Readings"
                 halign: "left"
                 valign: "middle"
                 text_size: self.size
@@ -188,7 +188,7 @@
                 id: ir_label
                 size_hint_y: None
                 height: dp(22)
-                text: "IR Channel"
+                text: "IR LED (RAW) Readings"
                 halign: "left"
                 valign: "middle"
                 text_size: self.size
@@ -211,7 +211,7 @@
 
             SectionTitle:
                 id: pleth_label
-                text: "Pleth Graph"
+                text: "Plethysmograph (Pleth)"
                 color: 0, 1, 1, 1
 
             Waveform:
