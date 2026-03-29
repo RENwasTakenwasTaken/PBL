@@ -13,25 +13,23 @@ void setup() {
 
   Serial.begin(9600);
   ads.begin();
-  ads.setGain(GAIN_SIXTEEN);
-
-  delay(5000);
+  ads.setGain(GAIN_TWO);
 }
 
 void loop() {
   digitalWrite(3, HIGH);
-  delay(7);
+  delay(2);
   red_levels = ads.readADC_SingleEnded(0);
   digitalWrite(3, LOW);
 
   digitalWrite(4, HIGH);
-  delay(5);
+  delay(2);
   ir_levels = ads.readADC_SingleEnded(0);
   digitalWrite(4, LOW);
 
   sprintf(serial_buffer, "%d,%d", red_levels, ir_levels);
   Serial.println(serial_buffer);
-  delay(3);
+  // delay(5);
 
   // 60Hz capture rate.
 }

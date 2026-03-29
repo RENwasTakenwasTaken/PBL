@@ -7,20 +7,31 @@ from serial.tools import list_ports
 
 
 class SerialValueReader:
-    def __init__(self, port=None, baudrate=9600, timeout=1, default_value=0.0, reconnect_delay=5.0):
+    def __init__(
+        self,
+        port=None,
+        baudrate=9600,
+        timeout=1,
+        default_value=0.0,
+        reconnect_delay=5.0,
+        smoothing_alpha=0.15,
+    ):
         self.port = port
         self.baudrate = baudrate
         self.timeout = timeout
         self.default_value = float(default_value)
         self.reconnect_delay = float(reconnect_delay)
+        self.smoothing_alpha = max(0.0, min(1.0, float(smoothing_alpha)))
 
         self._serial = None
         self._thread = None
         self._stop_event = threading.Event()
         self._lock = threading.Lock()
         self._latest_values = (self.default_value, self.default_value)
+        self._raw_values = (self.default_value, self.default_value)
         self._latest_text = ""
         self._last_error = ""
+        self._has_signal = False
 
     def start(self):
         if self._thread and self._thread.is_alive():
@@ -50,6 +61,10 @@ class SerialValueReader:
     def get_latest_values(self):
         with self._lock:
             return self._latest_values
+
+    def get_raw_values(self):
+        with self._lock:
+            return self._raw_values
 
     def get_latest_upper_value(self):
         with self._lock:
@@ -105,6 +120,22 @@ class SerialValueReader:
             self._serial.close()
         self._serial = None
 
+    def _smooth_values(self, values):
+        if self.smoothing_alpha <= 0:
+            return values
+
+        if not self._has_signal:
+            return values
+
+        previous_left, previous_right = self._latest_values
+        current_left, current_right = values
+        alpha = self.smoothing_alpha
+
+        return (
+            previous_left + alpha * (current_left - previous_left),
+            previous_right + alpha * (current_right - previous_right),
+        )
+
     def _read_loop(self):
         while not self._stop_event.is_set():
             if not self.is_connected():
@@ -138,9 +169,13 @@ class SerialValueReader:
             except ValueError:
                 continue
 
+            smoothed_values = self._smooth_values(values)
+
             with self._lock:
                 self._latest_text = text
-                self._latest_values = values
+                self._raw_values = values
+                self._latest_values = smoothed_values
+                self._has_signal = True
 
         self._disconnect()
 
@@ -151,12 +186,14 @@ def main():
     parser.add_argument("--baudrate", type=int, default=9600)
     parser.add_argument("--timeout", type=float, default=1)
     parser.add_argument("--rate", type=float, default=20.0, help="Print rate in Hz.")
+    parser.add_argument("--smoothing-alpha", type=float, default=0.15)
     args = parser.parse_args()
 
     reader = SerialValueReader(
         port=args.port,
         baudrate=args.baudrate,
         timeout=args.timeout,
+        smoothing_alpha=args.smoothing_alpha,
     ).start()
 
     try:

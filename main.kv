@@ -1,6 +1,26 @@
 #:import dp kivy.metrics.dp
 #:import Waveform waveform.Waveform
 
+<ParameterBox@BoxLayout>:
+    orientation: 'vertical'
+    canvas.before:
+        Color:
+            rgba: 0.7, 1, 0.7, 0.05
+        RoundedRectangle:
+            size: self.size
+            pos: self.pos
+            radius: [20]
+
+<ParameterTitle@Label>:
+    size_hint: None, None
+    size: self.texture_size
+    padding: [10]
+    color: 1, 1, 1, 0.7
+
+<ParameterValue@Label>:
+    font_size: 50
+    bold: True
+
 <MainLayout>:
     orientation: "vertical"
     padding: [40, 20, 20, 20]
@@ -18,28 +38,13 @@
         height: dp(48)
         spacing: dp(12)
 
-        Image:
-            source: "media/heart-rate-icon.png"
-            size_hint: None, None
-            size: dp(32), dp(32)
-            color: root.heart_icon_color
-
         Label:
-            text: root.title_text
-            halign: "left"
-            valign: "middle"
-            text_size: self.size
+            text: "SpO2 and Heart Rate Monitor"
+            size_hint_x: None
+            width: self.texture_size[0]
             color: 1, 1, 1, 1
             bold: True
-            font_size: "22sp"
-
-        Label:
-            text: "SpO2: " + root.spo2
-            text_size: self.size
-
-        Label:
-            text: "HR: " + root.heartrate
-            text_size: self.size
+            font_size: "30sp"
 
         Widget:
         
@@ -49,82 +54,124 @@
             width: self.texture_size[0]
             padding: [10]
 
-    Label:
-        size_hint_y: None
-        height: dp(28)
-        text: root.status_text
-        halign: "left"
-        valign: "middle"
-        text_size: self.size
-        color: 0.8, 0.84, 0.9, 1
+    BoxLayout:  # Entire main screen container.
+        spacing: 20
 
-    Label:
-        size_hint_y: None
-        height: dp(22)
-        text: "Red Channel"
-        halign: "left"
-        valign: "middle"
-        text_size: self.size
-        color: 0.1, 0.9, 0.4, 1
+        BoxLayout:  # Graph container.
+            orientation: 'vertical'
 
-    Waveform:
-        id: top_waveform
-        size_hint_y: 1
-        ymin: 0
-        ymax: 1024
-        fps: 60
-        time_window_sec: 20
-        major_x_ticks: 5
-        major_y_ticks: 5
-        auto_scale: True
-        max_ymax: 35000
-        min_ymin: -35000
-        graph_color: 0.1, 0.9, 0.4, 1
+            Label:
+                size_hint_y: None
+                height: dp(22)
+                text: "Red Channel"
+                halign: "left"
+                valign: "middle"
+                text_size: self.size
+                color: 1, 0, 0, 1
 
-    Label:
-        size_hint_y: None
-        height: dp(22)
-        text: "IR Channel"
-        halign: "left"
-        valign: "middle"
-        text_size: self.size
-        color: 0.95, 0.35, 0.2, 1
+            Waveform:
+                id: top_waveform
+                size_hint_y: 1
+                ymin: 0
+                ymax: 1024
+                fps: 60
+                time_window_sec: 20
+                autoscale_window_sec: 2
+                major_x_ticks: 5
+                major_y_ticks: 5
+                auto_scale: True
+                max_ymax: 35000
+                min_ymin: -35000
+                graph_color: 1, 0.3, 0.3, 1
 
-    Waveform:
-        id: bottom_waveform
-        size_hint_y: 1
-        ymin: 0
-        ymax: 1024
-        fps: 60
-        time_window_sec: 20
-        major_x_ticks: 5
-        major_y_ticks: 5
-        auto_scale: True
-        max_ymax: 35000
-        min_ymin: -35000
-        graph_color: 0.95, 0.35, 0.2, 1
+            Label:
+                size_hint_y: None
+                height: dp(22)
+                text: "IR Channel"
+                halign: "left"
+                valign: "middle"
+                text_size: self.size
+                color: 1, 0, 1, 1
 
-    Label:
-        size_hint_y: None
-        height: dp(22)
-        text: "Pleth Graph"
-        halign: "left"
-        valign: "middle"
-        text_size: self.size
-        color: 0.2, 0.5, 1, 1
+            Waveform:
+                id: bottom_waveform
+                size_hint_y: 1
+                ymin: 0
+                ymax: 1024
+                fps: 60
+                time_window_sec: 20
+                autoscale_window_sec: 2
+                major_x_ticks: 5
+                major_y_ticks: 5
+                auto_scale: True
+                max_ymax: 35000
+                min_ymin: -35000
+                graph_color: 1, 0.3, 1, 1
 
-    Waveform:
-        id: pleth_waveform
-        size_hint_y: 1
-        ymin: 0
-        ymax: 100
-        fps: 60
-        time_window_sec: 20
-        major_x_ticks: 5
-        major_y_ticks: 5
-        auto_scale: True
-        max_ymax: 150
-        min_ymin: 0
-        graph_color: 0.2, 0.5, 1, 1
+            Label:
+                size_hint_y: None
+                height: dp(22)
+                text: "Pleth Graph"
+                halign: "left"
+                valign: "middle"
+                text_size: self.size
+                color: 0, 1, 1, 1
+
+            Waveform:
+                id: pleth_waveform
+                size_hint_y: 1
+                ymin: 0
+                ymax: 100
+                fps: 60
+                time_window_sec: 20
+                autoscale_window_sec: 2
+                major_x_ticks: 5
+                major_y_ticks: 5
+                auto_scale: True
+                max_ymax: 150
+                min_ymin: 0
+                graph_color: 0, 1, 1, 1
+
+        BoxLayout:
+            orientation: 'vertical'
+            spacing: 10
+            size_hint_x: 0.3
+
+            ParameterBox:
+                ParameterTitle:
+                    text: "SpO2 (%)"
+                
+                ParameterValue:
+                    text: root.spo2
+
+            ParameterBox:
+                BoxLayout:
+                    size_hint_y: 0.3
+                    padding: [10, 0]
+
+                    ParameterTitle:
+                        text: "Heart Rate (HR) (bpm)"
+                        
+                    Widget:
+
+                    Image:
+                        source: "media/heart-rate-icon.png"
+                        size_hint: None, None
+                        size: dp(32), dp(32)
+                        color: root.heart_icon_color
+
+                ParameterValue:
+                    text: root.heartrate
+
+            ParameterBox:
+                ParameterTitle:
+                    text: "Status of Data Capturing:"
+
+                Label:
+                    text: root.status_text
+                    text_size: self.size
+                    halign: 'left'
+                    valign: 'top'
+                    padding: [10]
 
 MainLayout:

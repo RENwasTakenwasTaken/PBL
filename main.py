@@ -19,7 +19,6 @@ HEART_BRIGHT = (1, 0.2, 0.2, 1)
 class MainLayout(BoxLayout):
     heartbeat_detected = BooleanProperty(False)
     heart_icon_color = ColorProperty(HEART_DARK)
-    title_text = StringProperty("SpO2 Waveform Monitor")
     status_text = StringProperty("Connecting to serial port @ 9600 baud")
     heartrate_threshold_lower = NumericProperty(0)
     heartrate_threshold_upper = NumericProperty(0)
@@ -36,6 +35,8 @@ class MainLayout(BoxLayout):
         self.heartBeat_timer_limit = 10
         self.heartBeat_count = 0
         self.heartbeat_detected_count = 0
+
+
 
     @property
     def top_waveform(self):
@@ -82,16 +83,13 @@ class MainLayout(BoxLayout):
         self.pleth_waveform.update_autoscale()
 
         # --- Heart Rate Detection. ---
-        # - Determine heartrate detection threshold.
         points = self.bottom_waveform.get_plot_points(portion=0.25)
         self.heartrate_threshold_lower = self.calculate_array_average_absolute(points)
         self.heartrate_threshold_upper = self.heartrate_threshold_lower * 1.5
 
-        # - Heart Rate Counter using a counting variable.
         if self.heartBeat_timer < self.heartBeat_timer_limit:
             self.heartBeat_timer += 1
         else:
-            # Calculate heartbeats for 1 minute from counts measured in 10 seconds.
             self.heartrate = str(self.heartBeat_count * 6)
             self.heartBeat_count = 0
             self.heartBeat_timer = 0
@@ -113,7 +111,6 @@ class MainLayout(BoxLayout):
             if not self.heartbeat_detected:
                 self.heartbeat_detected = True
                 self.heart_icon_color = HEART_BRIGHT
-
                 self.heartBeat_count += 1
         else:
             if self.heartbeat_detected:
@@ -127,6 +124,8 @@ class MainLayout(BoxLayout):
         if not self.reader.is_connected():
             error_text = self.reader.get_last_error() or "No matching serial device found"
             self.status_text = f"{error_text}. Retrying in 5 seconds..."
+            self.heartbeat_detected = False
+            self.heart_icon_color = HEART_DARK
             return
 
         upper, lower = self.reader.get_latest_values()

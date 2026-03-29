@@ -3,7 +3,7 @@ import time
 
 from collections import deque
 
-from kivy.properties import NumericProperty, BooleanProperty, ListProperty
+from kivy.properties import NumericProperty, BooleanProperty, ListProperty, ColorProperty
 from kivy.core.text import Label as CoreLabel
 from kivy.graphics import Rectangle
 from kivy.graphics import Color, Line, StencilPush, StencilUse, StencilUnUse, StencilPop
@@ -34,8 +34,11 @@ class Waveform(Widget):
     autoscale_margin = NumericProperty(0.15)    # 15% headroom
     autoscale_alpha = NumericProperty(0.7)      # smoothing factor
     autoscale_quantum = NumericProperty(10)  # snap to multiples of 10
+    autoscale_window_sec = NumericProperty(0)  # 0 means use full visible window
 
-    def __init__(self, graph_color=(0, 1, 0, 1), data_source=None, line_width=1.3, **kwargs):
+    graph_color = ListProperty([0, 1, 0, 1])
+
+    def __init__(self, data_source=None, line_width=1.3, **kwargs):
         super().__init__(**kwargs)
 
         self.WINDOW = int(self.time_window_sec * self.fps)
@@ -45,8 +48,7 @@ class Waveform(Widget):
 
         self.sample_index = 0  # "current position" as you described
         self.data_source = data_source
-        self.graph_color = graph_color
-        self.graph_sweep_old_color = self.graph_color[:-1] + (0.5,)
+        self.graph_sweep_old_color = self.graph_color[:-1] + [0.5,]
 
         self.freeze_graph = False
 
@@ -70,11 +72,11 @@ class Waveform(Widget):
             self._stencil_rect = Rectangle(pos=self.pos, size=self.size)
             StencilUse()
 
-            Color(*self.graph_color)
+            self._line_color = Color(*self.graph_color)
             self.line = Line(points=[], width=line_width)
             self.line_left = Line(points=[], width=line_width)
 
-            Color(*self.graph_sweep_old_color)
+            self._line_right_color = Color(*self.graph_sweep_old_color)
             self.line_right = Line(points=[], width=line_width)
 
             StencilUnUse()
@@ -93,8 +95,10 @@ class Waveform(Widget):
                     min_ymin=self._apply_y_bounds)
         self.bind(time_window_sec=self._rebuild_window,
                     fps=self._rebuild_window)
+        self.bind(graph_color=self._update_graph_colors)
 
         self._apply_y_bounds()
+        self._update_graph_colors()
         
     def freeze(self):
         self.freeze_graph = True
@@ -171,6 +175,13 @@ class Waveform(Widget):
 
         self._stencil_rect_unuse.pos = self.pos
         self._stencil_rect_unuse.size = self.size
+
+    def _update_graph_colors(self, *args):
+        faded_color = self.graph_color[:-1] + [0.5]
+        if self.graph_sweep_old_color != faded_color:
+            self.graph_sweep_old_color = faded_color
+        self._line_color.rgba = self.graph_color
+        self._line_right_color.rgba = self.graph_sweep_old_color
 
     def upscale_graph(self, delta=1):
         if self.time_window_sec >= self._maximum_timeWindow:
@@ -412,7 +423,8 @@ class Waveform(Widget):
             return
 
         now = time.monotonic()
-        t_start = now - self.time_window_sec
+        autoscale_window = self.autoscale_window_sec if self.autoscale_window_sec > 0 else self.time_window_sec
+        t_start = now - min(autoscale_window, self.time_window_sec)
 
         vmin = None
         vmax = None
