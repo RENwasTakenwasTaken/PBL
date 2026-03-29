@@ -6,6 +6,7 @@ import numpy as np
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.core.window import Window
+from kivy.factory import Factory
 from kivy.lang import Builder
 from kivy.properties import BooleanProperty, ColorProperty, NumericProperty, StringProperty
 from kivy.uix.boxlayout import BoxLayout
@@ -47,6 +48,7 @@ class MainLayout(BoxLayout):
         self.ir_delta_successive_count = 0
 
         self.last_heartbeat_time = 0
+        self._extra_waveforms_panel = None
 
     @property
     def top_waveform(self):
@@ -57,21 +59,41 @@ class MainLayout(BoxLayout):
         return self.ids.bottom_waveform
 
     @property
+    def red_label(self):
+        return self.ids.red_label
+
+    @property
+    def ir_label(self):
+        return self.ids.ir_label
+
+    @property
+    def pleth_label(self):
+        return self.ids.pleth_label
+
+    @property
     def pleth_waveform(self):
         return self.ids.pleth_waveform
 
     @property
+    def graph_container(self):
+        return self.ids.graph_container
+
+    @property
     def ir_delta_waveform(self):
-        return self.ids.ir_delta_waveform
+        return self._extra_waveforms_panel.ids.ir_delta_waveform
 
     @property
     def fft_graph(self):
-        return self.ids.fft_graph
+        return self._extra_waveforms_panel.ids.fft_graph
 
     def start(self):
         self.ir_delta = 0
         self.prev_ir = 0
+        self._ensure_extra_waveforms_panel()
         self.extra_waveforms_enabled = False
+        if self._extra_waveforms_panel.parent is not None:
+            self._extra_waveforms_panel.parent.remove_widget(self._extra_waveforms_panel)
+        self._sync_graph_layout()
         self.reader = SerialValueReader(baudrate=SERIAL_BAUDRATE, timeout=1).start()
         self.top_waveform.data_source = self.reader.get_latest_upper_value
         self.bottom_waveform.data_source = self.reader.get_latest_lower_value
@@ -239,9 +261,52 @@ class MainLayout(BoxLayout):
         App.get_running_app().stop()
 
     def toggle_extra_waveforms(self):
+        self._ensure_extra_waveforms_panel()
         self.extra_waveforms_enabled = not self.extra_waveforms_enabled
         if not self.extra_waveforms_enabled:
             self.fft_graph.clear_spectrum()
+        self._sync_graph_layout()
+
+    def _ensure_extra_waveforms_panel(self):
+        if self._extra_waveforms_panel is None:
+            self._extra_waveforms_panel = Factory.ExtraWaveformsPanel()
+
+    def _sync_graph_layout(self):
+        widgets = [
+            self.red_label,
+            self.top_waveform,
+            self.ir_label,
+            self.bottom_waveform,
+            self.pleth_label,
+            self.pleth_waveform,
+        ]
+
+        for widget in widgets:
+            if widget.parent is not None:
+                widget.parent.remove_widget(widget)
+
+        if self._extra_waveforms_panel is not None and self._extra_waveforms_panel.parent is not None:
+            self._extra_waveforms_panel.parent.remove_widget(self._extra_waveforms_panel)
+
+        ordered_widgets = [
+            self.ir_label,
+            self.bottom_waveform,
+        ]
+
+        if self.extra_waveforms_enabled:
+            ordered_widgets.append(self._extra_waveforms_panel)
+        else:
+            ordered_widgets = [
+                self.red_label,
+                self.top_waveform,
+                self.ir_label,
+                self.bottom_waveform,
+                self.pleth_label,
+                self.pleth_waveform,
+            ]
+
+        for widget in ordered_widgets:
+            self.graph_container.add_widget(widget, index=0)
 
 class WaveformTestApp(App):
     def build(self):

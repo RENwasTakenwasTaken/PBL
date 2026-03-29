@@ -29,6 +29,42 @@
     font_size: 50
     bold: True
 
+<ExtraWaveformsPanel@BoxLayout>:
+    orientation: "vertical"
+    size_hint_y: 2
+    spacing: dp(8)
+
+    SectionTitle:
+        text: "IR Delta"
+        color: 1, 0.8, 0.4, 1
+
+    Waveform:
+        id: ir_delta_waveform
+        size_hint_y: 1
+        ymin: -200
+        ymax: 200
+        fps: 60
+        time_window_sec: 20
+        autoscale_window_sec: self.time_window_sec / 2
+        major_x_ticks: 5
+        major_y_ticks: 5
+        auto_scale: True
+        max_ymax: 35000
+        min_ymin: -35000
+        graph_color: 1, 0.8, 0.4, 1
+
+    SectionTitle:
+        text: "IR FFT"
+        color: 1, 0.8, 0.2, 1
+
+    FFTGraph:
+        id: fft_graph
+        size_hint_y: 1
+        max_frequency: 25
+        major_x_ticks: 4
+        major_y_ticks: 4
+        graph_color: 1, 0.8, 0.2, 1
+
 <MainLayout>:
     orientation: "vertical"
     padding: [40, 20, 20, 20]
@@ -74,9 +110,12 @@
         spacing: 20
 
         BoxLayout:  # Graph container.
+            id: graph_container
             orientation: 'vertical'
+            spacing: 15
 
             Label:
+                id: red_label
                 size_hint_y: None
                 height: dp(22)
                 text: "Red Channel"
@@ -101,6 +140,7 @@
                 graph_color: 1, 0.3, 0.3, 1
 
             Label:
+                id: ir_label
                 size_hint_y: None
                 height: dp(22)
                 text: "IR Channel"
@@ -124,48 +164,8 @@
                 min_ymin: -35000
                 graph_color: 1, 0.3, 1, 1
 
-            BoxLayout:
-                orientation: "vertical"
-                size_hint_y: None
-                spacing: dp(8)
-                height: (dp(22) + dp(220) + dp(22) + dp(180) + dp(8)) if root.extra_waveforms_enabled else 0
-                opacity: 1 if root.extra_waveforms_enabled else 0
-                disabled: not root.extra_waveforms_enabled
-
-                SectionTitle:
-                    text: "IR Delta"
-                    color: 1, 0.8, 0.4, 1
-
-                Waveform:
-                    id: ir_delta_waveform
-                    size_hint_y: None
-                    height: dp(220)
-                    ymin: -200
-                    ymax: 200
-                    fps: 60
-                    time_window_sec: 20
-                    autoscale_window_sec: self.time_window_sec / 2
-                    major_x_ticks: 5
-                    major_y_ticks: 5
-                    auto_scale: True
-                    max_ymax: 35000
-                    min_ymin: -35000
-                    graph_color: 1, 0.8, 0.4, 1
-
-                SectionTitle:
-                    text: "IR FFT"
-                    color: 1, 0.8, 0.2, 1
-
-                FFTGraph:
-                    id: fft_graph
-                    size_hint_y: None
-                    height: dp(180)
-                    max_frequency: 25
-                    major_x_ticks: 4
-                    major_y_ticks: 4
-                    graph_color: 1, 0.8, 0.2, 1
-
             SectionTitle:
+                id: pleth_label
                 text: "Pleth Graph"
                 color: 0, 1, 1, 1
 
@@ -195,6 +195,7 @@
                 
                 ParameterValue:
                     text: root.spo2
+                    color: 0, 1, 1, 1
 
             ParameterBox:
                 BoxLayout:
