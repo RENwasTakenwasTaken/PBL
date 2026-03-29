@@ -149,6 +149,8 @@ class MainLayout(BoxLayout):
         if self.pleth_waveform.parent is not None:
             points = self.pleth_waveform.get_plot_points(portion=1)
             self.spo2 = str(round(self.calculate_array_average_absolute(points)))
+            if self.spo2 > 100:
+                self.spo2 = 100
 
     def graph_fps(self, *_args):
         if self.top_waveform.parent is not None:
