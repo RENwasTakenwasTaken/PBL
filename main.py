@@ -51,30 +51,36 @@ class MainLayout(BoxLayout):
         self.last_heartbeat_time = 0
         self._extra_waveforms_panel = None
         self._update_modal = None
+        self._top_waveform = None
+        self._bottom_waveform = None
+        self._red_label = None
+        self._ir_label = None
+        self._pleth_label = None
+        self._pleth_waveform = None
 
     @property
     def top_waveform(self):
-        return self.ids.top_waveform
+        return self._top_waveform
 
     @property
     def bottom_waveform(self):
-        return self.ids.bottom_waveform
+        return self._bottom_waveform
 
     @property
     def red_label(self):
-        return self.ids.red_label
+        return self._red_label
 
     @property
     def ir_label(self):
-        return self.ids.ir_label
+        return self._ir_label
 
     @property
     def pleth_label(self):
-        return self.ids.pleth_label
+        return self._pleth_label
 
     @property
     def pleth_waveform(self):
-        return self.ids.pleth_waveform
+        return self._pleth_waveform
 
     @property
     def graph_container(self):
@@ -89,6 +95,7 @@ class MainLayout(BoxLayout):
         return self._extra_waveforms_panel.ids.fft_graph
 
     def start(self):
+        self._capture_widget_references()
         self.ir_delta = 0
         self.prev_ir = 0
         self._ensure_extra_waveforms_panel()
@@ -293,6 +300,15 @@ class MainLayout(BoxLayout):
     def _ensure_extra_waveforms_panel(self):
         if self._extra_waveforms_panel is None:
             self._extra_waveforms_panel = Factory.ExtraWaveformsPanel()
+
+    def _capture_widget_references(self):
+        if self._top_waveform is None:
+            self._top_waveform = self.ids.top_waveform
+            self._bottom_waveform = self.ids.bottom_waveform
+            self._red_label = self.ids.red_label
+            self._ir_label = self.ids.ir_label
+            self._pleth_label = self.ids.pleth_label
+            self._pleth_waveform = self.ids.pleth_waveform
 
     def _sync_graph_layout(self):
         widgets = [
