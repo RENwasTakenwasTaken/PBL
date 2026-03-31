@@ -238,7 +238,7 @@ class MainLayout(BoxLayout):
         if ir == 0:
             return 0.0
 
-        return (red / ir) * 100
+        return (red / ir) * 100 * 10    # Temporary amplification.
 
     def get_ir_delta_value(self):
         return self.ir_delta

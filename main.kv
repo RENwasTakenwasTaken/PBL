@@ -5,9 +5,10 @@
 <SectionTitle@Label>:
     size_hint_y: None
     height: dp(22)
-    halign: "left"
+    halign: "center"
     valign: "middle"
     text_size: self.size
+    font_size: 20
 
 <ParameterBox@BoxLayout>:
     orientation: 'vertical'
@@ -24,6 +25,7 @@
     size: self.texture_size
     padding: [10]
     color: 1, 1, 1, 0.7
+    font_size: 22
 
 <ParameterValue@Label>:
     font_size: 50
@@ -200,14 +202,9 @@
             orientation: 'vertical'
             spacing: 15
 
-            Label:
+            SectionTitle:
                 id: red_label
-                size_hint_y: None
-                height: dp(22)
                 text: "RED LED (RAW) Readings"
-                halign: "left"
-                valign: "middle"
-                text_size: self.size
                 color: 1, 0, 0, 1
 
             Waveform:
@@ -225,14 +222,9 @@
                 min_ymin: -35000
                 graph_color: 1, 0.3, 0.3, 1
 
-            Label:
+            SectionTitle:
                 id: ir_label
-                size_hint_y: None
-                height: dp(22)
                 text: "IR LED (RAW) Readings"
-                halign: "left"
-                valign: "middle"
-                text_size: self.size
                 color: 1, 0, 1, 1
 
             Waveform:
@@ -266,7 +258,7 @@
                 major_x_ticks: 5
                 major_y_ticks: 5
                 auto_scale: True
-                max_ymax: 150
+                max_ymax: 1200
                 min_ymin: 0
                 graph_color: 0, 1, 1, 1
 
@@ -285,11 +277,12 @@
 
             ParameterBox:
                 BoxLayout:
-                    size_hint_y: 0.3
                     padding: [10, 0]
+                    size_hint_y: None
+                    height: self.minimum_height
 
                     ParameterTitle:
-                        text: "Heart Rate (HR) (bpm)"
+                        text: "Heart Rate (bpm)"
                         
                     Widget:
 
