@@ -1,5 +1,6 @@
 from pathlib import Path
 import subprocess
+import traceback
 import time
 
 import numpy as np
@@ -9,6 +10,7 @@ from kivy.core.window import Window
 from kivy.factory import Factory
 from kivy.lang import Builder
 from kivy.properties import BooleanProperty, ColorProperty, NumericProperty, StringProperty
+from kivy.uix.textinput import TextInput
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.modalview import ModalView
 
@@ -16,6 +18,7 @@ from reader import SerialValueReader
 
 
 KV_PATH = Path(__file__).with_name("main.kv")
+LOG_PATH = Path(__file__).with_name("app_error.log")
 HEART_DARK = (0.2, 0.2, 0.22, 1)
 HEART_BRIGHT = (1, 0.2, 0.2, 1)
 SERIAL_BAUDRATE = 115200
@@ -51,6 +54,9 @@ class MainLayout(BoxLayout):
         self.last_heartbeat_time = 0
         self._extra_waveforms_panel = None
         self._update_modal = None
+        self._update_modal_content = None
+        self._log_modal = None
+        self._log_modal_content = None
         self._top_waveform = None
         self._bottom_waveform = None
         self._red_label = None
@@ -113,9 +119,9 @@ class MainLayout(BoxLayout):
         self.status_text = "Searching for serial device..."
 
         self._events = [
-            Clock.schedule_interval(self.graph_fps, 1 / self.top_waveform.fps),
-            Clock.schedule_interval(self.graph_updation, 1),
-            Clock.schedule_interval(self.refresh_status, 0.2),
+            Clock.schedule_interval(self._guard_callback(self.graph_fps, "graph_fps"), 1 / self.top_waveform.fps),
+            Clock.schedule_interval(self._guard_callback(self.graph_updation, "graph_updation"), 1),
+            Clock.schedule_interval(self._guard_callback(self.refresh_status, "refresh_status"), 0.2),
         ]
 
     def stop(self):
@@ -282,15 +288,28 @@ class MainLayout(BoxLayout):
 
     def open_update_modal(self):
         if self._update_modal is None:
-            content = Factory.UpdateModalContent()
+            self._update_modal_content = Factory.UpdateModalContent()
             self._update_modal = ModalView(size_hint=(None, None), size=(420, 220), auto_dismiss=True)
-            self._update_modal.add_widget(content)
+            self._update_modal.add_widget(self._update_modal_content)
 
         self._update_modal.open()
 
     def close_update_modal(self):
         if self._update_modal is not None:
             self._update_modal.dismiss()
+
+    def open_log_modal(self):
+        if self._log_modal is None:
+            self._log_modal_content = Factory.LogModalContent()
+            self._log_modal = ModalView(size_hint=(0.85, 0.85), auto_dismiss=True)
+            self._log_modal.add_widget(self._log_modal_content)
+
+        self._log_modal_content.ids.log_text.text = self.read_log_text()
+        self._log_modal.open()
+
+    def close_log_modal(self):
+        if self._log_modal is not None:
+            self._log_modal.dismiss()
 
     def toggle_extra_waveforms(self):
         self._ensure_extra_waveforms_panel()
@@ -351,6 +370,31 @@ class MainLayout(BoxLayout):
         for widget in ordered_widgets:
             self.graph_container.add_widget(widget, index=0)
 
+    def _guard_callback(self, callback, callback_name):
+        def guarded(*args, **kwargs):
+            try:
+                return callback(*args, **kwargs)
+            except Exception:
+                self.log_exception(f"Unhandled exception in {callback_name}")
+                raise
+
+        return guarded
+
+    def log_exception(self, context_message):
+        traceback_text = traceback.format_exc()
+        timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+        log_entry = f"\n[{timestamp}] {context_message}\n{traceback_text}\n"
+        print(log_entry)
+        with LOG_PATH.open("a", encoding="utf-8") as log_file:
+            log_file.write(log_entry)
+
+    def read_log_text(self):
+        if not LOG_PATH.exists():
+            return "No log entries yet."
+
+        text = LOG_PATH.read_text(encoding="utf-8")
+        return text if text.strip() else "No log entries yet."
+
 class WaveformTestApp(App):
     def build(self):
         Window.clearcolor = (0.07, 0.08, 0.1, 1)
@@ -363,6 +407,27 @@ class WaveformTestApp(App):
         if self.root:
             self.root.stop()
 
+    def on_exception(self, exception):
+        if self.root:
+            self.root.log_exception(f"Kivy exception: {exception}")
+        else:
+            traceback_text = traceback.format_exc()
+            timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+            log_entry = f"\n[{timestamp}] Kivy exception before root init: {exception}\n{traceback_text}\n"
+            print(log_entry)
+            with LOG_PATH.open("a", encoding="utf-8") as log_file:
+                log_file.write(log_entry)
+        return False
+
 
 if __name__ == "__main__":
-    WaveformTestApp().run()
+    try:
+        WaveformTestApp().run()
+    except Exception:
+        traceback_text = traceback.format_exc()
+        timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+        log_entry = f"\n[{timestamp}] Unhandled application exception\n{traceback_text}\n"
+        print(log_entry)
+        with LOG_PATH.open("a", encoding="utf-8") as log_file:
+            log_file.write(log_entry)
+        raise

@@ -67,12 +67,53 @@
         spacing: dp(12)
 
         Button:
+            text: "View Log"
+            on_press: app.root.open_log_modal()
+
+        Button:
             text: "Cancel"
             on_press: app.root.close_update_modal()
 
         Button:
             text: "Update"
             on_press: app.root.updateSoftware()
+
+<LogModalContent@BoxLayout>:
+    orientation: "vertical"
+    padding: [24, 24, 24, 24]
+    spacing: dp(16)
+
+    canvas.before:
+        Color:
+            rgba: 0.1, 0.11, 0.15, 0.98
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [18]
+
+    Label:
+        text: "Application Log"
+        size_hint_y: None
+        height: dp(36)
+        bold: True
+        halign: "left"
+        valign: "middle"
+        text_size: self.size
+        color: 1, 1, 1, 1
+        font_size: "24sp"
+
+    TextInput:
+        id: log_text
+        readonly: True
+        multiline: True
+        text: ""
+        font_size: "14sp"
+
+    Button:
+        size_hint_y: None
+        height: dp(44)
+        text: "Close"
+        on_press: app.root.close_log_modal()
 
 <ExtraWaveformsPanel@BoxLayout>:
     orientation: "vertical"
