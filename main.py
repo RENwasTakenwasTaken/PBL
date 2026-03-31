@@ -57,6 +57,8 @@ class MainLayout(BoxLayout):
         self._ir_label = None
         self._pleth_label = None
         self._pleth_waveform = None
+        self._ir_delta_waveform = None
+        self._fft_graph = None
 
     @property
     def top_waveform(self):
@@ -88,11 +90,11 @@ class MainLayout(BoxLayout):
 
     @property
     def ir_delta_waveform(self):
-        return self._extra_waveforms_panel.ids.ir_delta_waveform
+        return self._ir_delta_waveform
 
     @property
     def fft_graph(self):
-        return self._extra_waveforms_panel.ids.fft_graph
+        return self._fft_graph
 
     def start(self):
         self._capture_widget_references()
@@ -300,6 +302,8 @@ class MainLayout(BoxLayout):
     def _ensure_extra_waveforms_panel(self):
         if self._extra_waveforms_panel is None:
             self._extra_waveforms_panel = Factory.ExtraWaveformsPanel()
+            self._ir_delta_waveform = self._extra_waveforms_panel.ids.ir_delta_waveform
+            self._fft_graph = self._extra_waveforms_panel.ids.fft_graph
 
     def _capture_widget_references(self):
         if self._top_waveform is None:
