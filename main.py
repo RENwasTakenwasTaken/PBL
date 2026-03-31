@@ -139,10 +139,10 @@ class MainLayout(BoxLayout):
         return sum(point[1] for point in points) / len(points)
 
     def graph_updation(self, *_args):
-        if self.top_waveform.parent is not None:
+        if self._is_widget_attached(self.top_waveform):
             self.top_waveform.update_autoscale()
         self.bottom_waveform.update_autoscale()
-        if self.pleth_waveform.parent is not None:
+        if self._is_widget_attached(self.pleth_waveform):
             self.pleth_waveform.update_autoscale()
         if self.extra_waveforms_enabled:
             self.ir_delta_waveform.update_autoscale()
@@ -161,17 +161,17 @@ class MainLayout(BoxLayout):
             self.heartBeat_timer = 0
 
         # --- Plethysmograph Averaging for SpO2. ---
-        if self.pleth_waveform.parent is not None:
+        if self._is_widget_attached(self.pleth_waveform):
             points = self.pleth_waveform.get_plot_points(portion=1)
             self.spo2 = str(round(self.calculate_array_average_absolute(points)))
             if int(self.spo2) > 100:
                 self.spo2 = "100"  # Since spo2 is now a string being assigned to a text label.
 
     def graph_fps(self, *_args):
-        if self.top_waveform.parent is not None:
+        if self._is_widget_attached(self.top_waveform):
             self.top_waveform.update_from_source()
         self.bottom_waveform.update_from_source()
-        if self.pleth_waveform.parent is not None:
+        if self._is_widget_attached(self.pleth_waveform):
             self.pleth_waveform.update_from_source()
         if self.extra_waveforms_enabled:
             self.ir_delta_waveform.update_from_source()
@@ -379,6 +379,12 @@ class MainLayout(BoxLayout):
                 raise
 
         return guarded
+
+    def _is_widget_attached(self, widget):
+        try:
+            return widget is not None and widget.parent is not None
+        except ReferenceError:
+            return False
 
     def log_exception(self, context_message):
         traceback_text = traceback.format_exc()
