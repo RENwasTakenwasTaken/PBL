@@ -108,8 +108,7 @@ class MainLayout(BoxLayout):
         self.prev_ir = 0
         self._ensure_extra_waveforms_panel()
         self.extra_waveforms_enabled = False
-        if self._extra_waveforms_panel.parent is not None:
-            self._extra_waveforms_panel.parent.remove_widget(self._extra_waveforms_panel)
+        self._detach_widget(self._extra_waveforms_panel)
         self._sync_graph_layout()
         self.reader = SerialValueReader(baudrate=SERIAL_BAUDRATE, timeout=1).start()
         self.top_waveform.data_source = self.reader.get_latest_upper_value
@@ -344,11 +343,9 @@ class MainLayout(BoxLayout):
         ]
 
         for widget in widgets:
-            if widget.parent is not None:
-                widget.parent.remove_widget(widget)
+            self._detach_widget(widget)
 
-        if self._extra_waveforms_panel is not None and self._extra_waveforms_panel.parent is not None:
-            self._extra_waveforms_panel.parent.remove_widget(self._extra_waveforms_panel)
+        self._detach_widget(self._extra_waveforms_panel)
 
         ordered_widgets = [
             self.ir_label,
@@ -385,6 +382,17 @@ class MainLayout(BoxLayout):
             return widget is not None and widget.parent is not None
         except ReferenceError:
             return False
+
+    def _detach_widget(self, widget):
+        if widget is None:
+            return
+        try:
+            parent = widget.parent
+        except ReferenceError:
+            return
+
+        if parent is not None:
+            parent.remove_widget(widget)
 
     def log_exception(self, context_message):
         traceback_text = traceback.format_exc()
