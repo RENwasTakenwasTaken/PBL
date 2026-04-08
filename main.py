@@ -13,9 +13,11 @@ from kivy.properties import BooleanProperty, ColorProperty, NumericProperty, Str
 from kivy.uix.textinput import TextInput
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.modalview import ModalView
+from kivy.uix.label import Label
 
 from reader import SerialValueReader
-
+from waveform import Waveform
+from waveform import FFTGraph
 
 KV_PATH = Path(__file__).with_name("main.kv")
 LOG_PATH = Path(__file__).with_name("app_error.log")
@@ -23,6 +25,9 @@ HEART_DARK = (0.2, 0.2, 0.22, 1)
 HEART_BRIGHT = (1, 0.2, 0.2, 1)
 SERIAL_BAUDRATE = 115200
 
+class SectionTitle(Label):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
 class MainLayout(BoxLayout):
     heartbeat_detected = BooleanProperty(False)
@@ -66,55 +71,108 @@ class MainLayout(BoxLayout):
         self._ir_delta_waveform = None
         self._fft_graph = None
 
-    @property
-    def top_waveform(self):
-        return self._top_waveform
+        self.top_waveform = Waveform(
+            size_hint_y=1,
+            ymin=-200,
+            ymax=200,
+            fps=60,
+            time_window_sec=20,
+            autoscale_window_sec=10,
+            major_x_ticks=5,
+            major_y_ticks=5,
+            auto_scale=True,
+            max_ymax=35000,
+            min_ymin=-35000,
+            graph_color=(1, 0.3, 0.3, 1)
+        )
 
-    @property
-    def bottom_waveform(self):
-        return self._bottom_waveform
+        self.bottom_waveform = Waveform(
+            size_hint_y=1,
+            ymin=-200,
+            ymax=200,
+            fps=60,
+            time_window_sec=20,
+            autoscale_window_sec=10,
+            major_x_ticks=5,
+            major_y_ticks=5,
+            auto_scale=True,
+            max_ymax=35000,
+            min_ymin=-35000,
+            graph_color=(1, 0.3, 1, 1)
+        )
 
-    @property
-    def red_label(self):
-        return self._red_label
+        self.pleth_waveform = Waveform(
+            size_hint_y=1,
+            ymin=0,
+            ymax=100,
+            fps=60,
+            time_window_sec=20,
+            autoscale_window_sec=10,
+            major_x_ticks=5,
+            major_y_ticks=5,
+            auto_scale=True,
+            max_ymax=1200,
+            min_ymin=0,
+            graph_color=(0, 1, 1, 1)
+        )
 
-    @property
-    def ir_label(self):
-        return self._ir_label
+        self.IR_delta_waveform = Waveform(
+            size_hint_y=1,
+            ymin=-200,
+            ymax=200,
+            fps=60,
+            time_window_sec=20,
+            autoscale_window_sec=10,
+            major_x_ticks=5,
+            major_y_ticks=5,
+            auto_scale=True,
+            max_ymax=35000,
+            min_ymin=-35000,
+            graph_color=(1, 0.8, 0.4, 1)
+        )
 
-    @property
-    def pleth_label(self):
-        return self._pleth_label
+        self.IR_FFT_waveform = FFTGraph(
+            size_hint_y=1,
+            max_frequency=25,
+            major_x_ticks=4,
+            major_y_ticks=4,
+            graph_color=(1, 0.8, 0.2, 1)
+        )
 
-    @property
-    def pleth_waveform(self):
-        return self._pleth_waveform
+        self.red_label = SectionTitle(
+            text="RED LED (RAW) Readings",
+            color=(1, 0, 0, 1)
+        )
+        self.ir_label = SectionTitle(
+            text="IR LED (RAW) Readings",
+            color=(1, 0, 1, 1)
+        )
+        self.pleth_label = SectionTitle(
+            text="Plethysmograph (Pleth)",
+            color=(0, 1, 1, 1)
+        )
 
-    @property
-    def graph_container(self):
-        return self.ids.graph_container
+        self.IR_delta_label = SectionTitle(
+            text="IR (d / dt) Rate-Of-Change Waveform",
+            color=(1, 0.8, 0.4, 1)
+        )
 
-    @property
-    def ir_delta_waveform(self):
-        return self._ir_delta_waveform
-
-    @property
-    def fft_graph(self):
-        return self._fft_graph
+        self.IR_FFT_Label = SectionTitle(
+            text="IR FFT (Harmonics present out of 25Hz)",
+            color=(1, 0.8, 0.2, 1)
+        )
 
     def start(self):
-        self._capture_widget_references()
         self.ir_delta = 0
         self.prev_ir = 0
-        self._ensure_extra_waveforms_panel()
         self.extra_waveforms_enabled = False
-        self._detach_widget(self._extra_waveforms_panel)
-        self._sync_graph_layout()
+
+
         self.reader = SerialValueReader(baudrate=SERIAL_BAUDRATE, timeout=1).start()
         self.top_waveform.data_source = self.reader.get_latest_upper_value
         self.bottom_waveform.data_source = self.reader.get_latest_lower_value
         self.pleth_waveform.data_source = self.get_latest_pleth_value
-        self.ir_delta_waveform.data_source = self.get_ir_delta_value
+        self.IR_delta_waveform.data_source = self.get_ir_delta_value
         self.status_text = "Searching for serial device..."
 
         self._events = [
@@ -138,15 +196,14 @@ class MainLayout(BoxLayout):
         return sum(point[1] for point in points) / len(points)
 
     def graph_updation(self, *_args):
-        if self._is_widget_attached(self.top_waveform):
-            self.top_waveform.update_autoscale()
-        self.bottom_waveform.update_autoscale()
-        if self._is_widget_attached(self.pleth_waveform):
-            self.pleth_waveform.update_autoscale()
         if self.extra_waveforms_enabled:
-            self.ir_delta_waveform.update_autoscale()
+            self.IR_delta_waveform.update_autoscale()
             self.update_fft_graph()
-
+        else:
+            self.top_waveform.update_autoscale()
+            self.bottom_waveform.update_autoscale()
+            self.pleth_waveform.update_autoscale()
+            
         # --- Heart Rate Detection. ---
         points = self.bottom_waveform.get_plot_points(portion=0.1)
         self.heartrate_threshold_lower = self.calculate_array_average_absolute(points)
@@ -160,20 +217,21 @@ class MainLayout(BoxLayout):
             self.heartBeat_timer = 0
 
         # --- Plethysmograph Averaging for SpO2. ---
-        if self._is_widget_attached(self.pleth_waveform):
+        
+        if not self.extra_waveforms_enabled:
             points = self.pleth_waveform.get_plot_points(portion=1)
             self.spo2 = str(round(self.calculate_array_average_absolute(points)))
             if int(self.spo2) > 100:
                 self.spo2 = "100"  # Since spo2 is now a string being assigned to a text label.
 
     def graph_fps(self, *_args):
-        if self._is_widget_attached(self.top_waveform):
-            self.top_waveform.update_from_source()
+        self.top_waveform.update_from_source()
         self.bottom_waveform.update_from_source()
-        if self._is_widget_attached(self.pleth_waveform):
-            self.pleth_waveform.update_from_source()
+        self.pleth_waveform.update_from_source()
+    
+        # Activate only when the extra waveform are activated.
         if self.extra_waveforms_enabled:
-            self.ir_delta_waveform.update_from_source()
+            self.IR_delta_waveform.update_from_source()
 
         if not self.reader:
             return
@@ -219,7 +277,7 @@ class MainLayout(BoxLayout):
             self.heartbeat_detected = False
             self.heart_icon_color = HEART_DARK
             if self.extra_waveforms_enabled:
-                self.fft_graph.clear_spectrum()
+                self.IR_FFT_waveform.clear_spectrum()
             return
 
         upper, lower = self.reader.get_latest_values()
@@ -245,7 +303,7 @@ class MainLayout(BoxLayout):
     def update_fft_graph(self):
         points = self.bottom_waveform.get_last_seconds(4.0)
         if len(points) < 16:
-            self.fft_graph.clear_spectrum()
+            self.IR_FFT_waveform.clear_spectrum()
             return
 
         timestamps = np.array([sample_time for sample_time, _ in points], dtype=float)
@@ -254,17 +312,17 @@ class MainLayout(BoxLayout):
         intervals = np.diff(timestamps)
         valid_intervals = intervals[intervals > 0]
         if valid_intervals.size == 0:
-            self.fft_graph.clear_spectrum()
+            self.IR_FFT_waveform.clear_spectrum()
             return
 
         sample_rate = 1.0 / float(valid_intervals.mean())
         if sample_rate <= 0:
-            self.fft_graph.clear_spectrum()
+            self.IR_FFT_waveform.clear_spectrum()
             return
 
         detrended = values - values.mean()
         if np.allclose(detrended, 0):
-            self.fft_graph.clear_spectrum()
+            self.IR_FFT_waveform.clear_spectrum()
             return
 
         window = np.hanning(len(detrended))
@@ -275,9 +333,9 @@ class MainLayout(BoxLayout):
         visible_points = [
             (float(frequency), float(magnitude))
             for frequency, magnitude in zip(frequencies, magnitudes)
-            if 0.0 <= frequency <= self.fft_graph.max_frequency
+            if 0.0 <= frequency <= self.IR_FFT_waveform.max_frequency
         ]
-        self.fft_graph.set_spectrum(visible_points)
+        self.IR_FFT_waveform.set_spectrum(visible_points)
 
     def updateSoftware(self):
         if self._update_modal is not None:
@@ -310,62 +368,38 @@ class MainLayout(BoxLayout):
         if self._log_modal is not None:
             self._log_modal.dismiss()
 
+    def remove_fromGraphContainer(self, widget):
+        self.ids.graph_container.remove_widget(widget)
+
+    def add_toGraphContainer(self, widget):
+        self.ids.graph_container.add_widget(widget)
+
+    def show_normalWaveforms(self):
+        self.ids.graph_container.clear_widgets()
+
+        self.add_toGraphContainer(self.red_label)
+        self.add_toGraphContainer(self.top_waveform)
+        self.add_toGraphContainer(self.ir_label)
+        self.add_toGraphContainer(self.bottom_waveform)
+        self.add_toGraphContainer(self.pleth_label)
+        self.add_toGraphContainer(self.pleth_waveform)
+
+    def show_extraWaveforms(self):
+        self.ids.graph_container.clear_widgets()
+
+        self.add_toGraphContainer(self.ir_label)
+        self.add_toGraphContainer(self.bottom_waveform)
+        self.add_toGraphContainer(self.IR_delta_label)
+        self.add_toGraphContainer(self.IR_delta_waveform)
+        self.add_toGraphContainer(self.IR_FFT_Label)
+        self.add_toGraphContainer(self.IR_FFT_waveform)
+
     def toggle_extra_waveforms(self):
-        self._ensure_extra_waveforms_panel()
         self.extra_waveforms_enabled = not self.extra_waveforms_enabled
         if not self.extra_waveforms_enabled:
-            self.fft_graph.clear_spectrum()
-        self._sync_graph_layout()
-
-    def _ensure_extra_waveforms_panel(self):
-        if self._extra_waveforms_panel is None:
-            self._extra_waveforms_panel = Factory.ExtraWaveformsPanel()
-            self._ir_delta_waveform = self._extra_waveforms_panel.ids.ir_delta_waveform
-            self._fft_graph = self._extra_waveforms_panel.ids.fft_graph
-
-    def _capture_widget_references(self):
-        if self._top_waveform is None:
-            self._top_waveform = self.ids.top_waveform
-            self._bottom_waveform = self.ids.bottom_waveform
-            self._red_label = self.ids.red_label
-            self._ir_label = self.ids.ir_label
-            self._pleth_label = self.ids.pleth_label
-            self._pleth_waveform = self.ids.pleth_waveform
-
-    def _sync_graph_layout(self):
-        widgets = [
-            self.red_label,
-            self.top_waveform,
-            self.ir_label,
-            self.bottom_waveform,
-            self.pleth_label,
-            self.pleth_waveform,
-        ]
-
-        for widget in widgets:
-            self._detach_widget(widget)
-
-        self._detach_widget(self._extra_waveforms_panel)
-
-        ordered_widgets = [
-            self.ir_label,
-            self.bottom_waveform,
-        ]
-
-        if self.extra_waveforms_enabled:
-            ordered_widgets.append(self._extra_waveforms_panel)
-        else:
-            ordered_widgets = [
-                self.red_label,
-                self.top_waveform,
-                self.ir_label,
-                self.bottom_waveform,
-                self.pleth_label,
-                self.pleth_waveform,
-            ]
-
-        for widget in ordered_widgets:
-            self.graph_container.add_widget(widget, index=0)
+            self.show_normalWaveforms()
+        else:        
+            self.show_extraWaveforms()
 
     def _guard_callback(self, callback, callback_name):
         def guarded(*args, **kwargs):
@@ -376,23 +410,6 @@ class MainLayout(BoxLayout):
                 raise
 
         return guarded
-
-    def _is_widget_attached(self, widget):
-        try:
-            return widget is not None and widget.parent is not None
-        except ReferenceError:
-            return False
-
-    def _detach_widget(self, widget):
-        if widget is None:
-            return
-        try:
-            parent = widget.parent
-        except ReferenceError:
-            return
-
-        if parent is not None:
-            parent.remove_widget(widget)
 
     def log_exception(self, context_message):
         traceback_text = traceback.format_exc()
