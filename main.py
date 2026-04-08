@@ -197,6 +197,7 @@ class MainLayout(BoxLayout):
 
     def graph_updation(self, *_args):
         if self.extra_waveforms_enabled:
+            self.bottom_waveform.update_autoscale()
             self.IR_delta_waveform.update_autoscale()
             self.update_fft_graph()
         else:
